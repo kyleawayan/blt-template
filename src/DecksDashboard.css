@@ -1,0 +1,42 @@
+.containerSafe {
+  width: 90%; /* 100% of the parent element's width */
+  height: calc(100vh * 0.9); /* 90% of the viewport height */
+  margin: auto; /* center the container */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* center the container */
+  box-sizing: border-box; /* include padding and border in element's total width and height */
+}
+
+/* Bottom gradient */
+.gradient-wrapper::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40%; /* adjust this to change the height of the gradient */
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.7),
+    transparent
+  ); /* adjust the colors and opacity as needed */
+  z-index: -1;
+}
+
+/* Top gradient */
+.gradient-wrapper::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(130deg, rgba(0, 0, 0, 0.7) 0%, transparent 30%);
+  z-index: -1;
+}
+
+.fade {
+  transition: opacity 0.2s;
+}
