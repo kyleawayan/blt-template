@@ -1,6 +1,6 @@
 import React from "react";
 import "./DecksDashboard.css";
-import { useDecksData } from "./useDecksData";
+import { useVDJData } from "./useVDJData";
 import { useCurrentTime } from "./useCurrentTime";
 import { Player } from "./playerData";
 
@@ -21,9 +21,8 @@ const SingleDeck = ({ player }: { player: Player }) => (
     <div>
       <div className="mb-2">
         <img
-          src={`/artwork/${
-            player.number
-          }?icons=true&timestamp=${new Date().getTime()}`}
+          // @ts-ignore
+          src={player.cover}
           width="100"
           height="100"
           alt={`Artwork ${player.number}`}
@@ -38,12 +37,12 @@ const SingleDeck = ({ player }: { player: Player }) => (
         </p>
       </div>
       <div>
-        <img
+        {/* <img
           src={`/wave-detail/${
             player.number
           }?width=300&scale=2&timestamp=${Date.now()}`}
           alt="Scrolling waveform"
-        />
+        /> */}
         <div>
           <div className="text-xl font-lcd-mini">
             {player["time-remaining"]?.display}
@@ -55,7 +54,7 @@ const SingleDeck = ({ player }: { player: Player }) => (
 );
 
 const DecksDashboard = () => {
-  const { tempo, players } = useDecksData();
+  const { tempo, players } = useVDJData();
   const currentTime = useCurrentTime(500); // Update time every 500 ms
 
   if (!players || players.length === 0) {
