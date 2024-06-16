@@ -32,9 +32,11 @@ async function getImageBlobFromVdj(deck: string) {
 
 function msToMMSSMS(ms: number) {
   const minutes = Math.floor(ms / 60000);
-  const seconds = ((ms % 60000) / 1000).toFixed(0);
-  const milliseconds = Math.floor((ms % 1000) / 10);
-  return `${minutes}:${seconds.padStart(2, "0")}.${milliseconds}`;
+  const seconds = ((ms % 60000) / 1000).toFixed(0).padStart(2, "0");
+  const milliseconds = Math.floor((ms % 1000) / 10)
+    .toString()
+    .padStart(2, "0");
+  return `${minutes}:${seconds}.${milliseconds}`;
 }
 
 export function useVDJData() {
