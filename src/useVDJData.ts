@@ -71,7 +71,7 @@ export function useVDJData() {
             true
           )) as boolean,
           "is-tempo-master": (await fetchDataFromVdj(
-            "master_deck",
+            "masterdeck",
             playerNumber,
             true
           )) as boolean,
