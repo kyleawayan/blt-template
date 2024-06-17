@@ -4,11 +4,37 @@ import { useVDJData } from "./useVDJData";
 import { useCurrentTime } from "./useCurrentTime";
 import { Player } from "./playerData";
 
+const VUMeter = ({ l, r }: { l: number; r: number }) => {
+  return (
+    <div className="vu-meter mb-2 overflow-hidden">
+      <div
+        className="vu-meter-bar bg-white"
+        style={{
+          // @ts-ignore i added the vuLeft property
+          width: `${l ?? 0}%`,
+          height: "6px", // Add this line to set the height
+          marginBottom: "1px",
+          transition: "width 0.05s ease-in-out",
+        }}
+      ></div>
+      <div
+        className="vu-meter-bar bg-white"
+        style={{
+          // @ts-ignore i added the vuRight property
+          width: `${r ?? 0}%`,
+          height: "6px", // Add this line to set the height
+          transition: "width 0.05s ease-in-out",
+        }}
+      ></div>
+    </div>
+  );
+};
+
 const SingleDeck = ({ player }: { player: Player }) => (
   <div
     className="text-left flex-1 m-2 fade"
     style={{
-      opacity: player["is-on-air"] && player["is-playing"] ? 1 : 0,
+      opacity: player["is-on-air"] ? 1 : 0,
     }}
   >
     <div
@@ -43,6 +69,8 @@ const SingleDeck = ({ player }: { player: Player }) => (
           }?width=300&scale=2&timestamp=${Date.now()}`}
           alt="Scrolling waveform"
         /> */}
+        {/* @ts-ignore */}
+        <VUMeter l={player.vu_meter_l} r={player.vu_meter_r} />
         <div>
           <div className="text-xl font-lcd-mini">
             {player["time-remaining"]?.display}

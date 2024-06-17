@@ -85,7 +85,7 @@ function createPlayer(number: number): Player {
     "cue-countdown-display": "10s",
     "is-track-loaded": true,
     "is-tempo-master": false,
-    "is-on-air": true,
+    "is-on-air": false,
     name: `Player ${number}`,
     "is-playing-forwards": true,
     "is-playing-cdj-mode": true,
@@ -155,5 +155,12 @@ const staticData: Data = {
   },
 };
 
+const staticPlayersArray = [
+  staticData.players[1],
+  staticData.players[2],
+  staticData.players[3],
+  staticData.players[4],
+];
+
 export type { Data, Player, Track };
-export { staticData };
+export { staticData, staticPlayersArray };

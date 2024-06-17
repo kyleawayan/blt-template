@@ -1,115 +1,85 @@
-// useVDJData.ts
+// @ts-nocheck
 import { useEffect, useState } from "react";
-import { Player, Data, staticData } from "./playerData";
-
-async function fetchDataFromVdj(
-  vdjCommand: string,
-  deck: string,
-  parseValue?: boolean
-) {
-  const response = await fetch(
-    `http://127.0.0.1:8003/query?script=deck ${deck} ${vdjCommand}`
-  );
-  let value = (await response.text()) as string | number | boolean;
-  if (parseValue) {
-    if (typeof value === "string" && !isNaN(Number(value))) {
-      value = Number(value);
-    } else if (typeof parseValue === "boolean") {
-      value = value === "yes";
-    }
-  }
-  return value;
-}
-
-async function getImageBlobFromVdj(deck: string) {
-  const response = await fetch(
-    `http://127.0.0.1:8003/query?script=deck ${deck} get_controller_image`
-  );
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  return url;
-}
-
-function msToMMSSMS(ms: number) {
-  const minutes = Math.floor(ms / 60000);
-  const seconds = ((ms % 60000) / 1000).toFixed(0).padStart(2, "0");
-  const milliseconds = Math.floor((ms % 1000) / 10)
-    .toString()
-    .padStart(2, "0");
-  return `${minutes}:${seconds}.${milliseconds}`;
-}
+import { staticPlayersArray } from "./playerData";
 
 export function useVDJData() {
-  const [tempo, setTempo] = useState("");
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [tempo, setTempo] = useState("0");
+  const [players, setPlayers] = useState(staticPlayersArray);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const tempo = (await fetchDataFromVdj(
-        "get_bpm",
-        "master",
-        true
-      )) as number;
-      setTempo(tempo.toFixed(0));
+    const ws = new WebSocket("ws://127.0.0.1:8081");
 
-      // For each player
-      const playerNumbers = ["1", "2", "3", "4"];
-      const playerData: Player[] = [];
-
-      for (const playerNumber of playerNumbers) {
-        const player: Player = {
-          // @ts-ignore vdj uses letters
-          number: ["A", "B", "C", "D"][parseInt(playerNumber) - 1],
-          "is-on-air": (await fetchDataFromVdj(
-            "is_audible",
-            playerNumber,
-            true
-          )) as boolean,
-          "is-playing": (await fetchDataFromVdj(
-            "play",
-            playerNumber,
-            true
-          )) as boolean,
-          "is-tempo-master": (await fetchDataFromVdj(
-            "masterdeck",
-            playerNumber,
-            true
-          )) as boolean,
-          // @ts-ignore just need display to show
-          "time-remaining": {
-            display: msToMMSSMS(
-              Number(await fetchDataFromVdj("get_time", playerNumber))
-            ),
-          },
-          // @ts-ignore track wants additional properties
-          track: {
-            title: (await fetchDataFromVdj(
-              "get_title",
-              playerNumber
-            )) as string,
-            artist: (await fetchDataFromVdj(
-              "get_artist",
-              playerNumber
-            )) as string,
-          },
-          cover: await getImageBlobFromVdj(playerNumber),
-        };
-
-        console.log(player);
-
-        playerData.push(player);
-      }
-
-      setPlayers(playerData);
+    ws.onopen = () => {
+      console.log("WebSocket connection established");
     };
 
-    // Initial fetch
-    fetchData();
-    // Update data every second
-    // TODO: Change back to 50
-    const interval = setInterval(fetchData, 1000);
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
 
-    return () => clearInterval(interval);
+      setPlayers((prevPlayers) => {
+        // Clone the previous players state
+        const updatedPlayers = [...prevPlayers];
+
+        // Get the player index based on the deck number
+        const playerIndex = data.deck - 1;
+
+        if (updatedPlayers[playerIndex]) {
+          switch (data.type) {
+            case "VU_METER_L":
+              updatedPlayers[playerIndex].vu_meter_l = data.level;
+              break;
+            case "VU_METER_R":
+              updatedPlayers[playerIndex].vu_meter_r = data.level;
+              break;
+            case "TIME_REMAINING":
+              const timeRemaining =
+                updatedPlayers[playerIndex]["time-remaining"];
+              if (data.cc === 0x2c) {
+                timeRemaining.minutes = data.value;
+              } else if (data.cc === 0x2d) {
+                timeRemaining.seconds = data.value;
+              } else if (data.cc === 0x2e) {
+                timeRemaining["frame-tenths"] = data.value;
+              }
+              // Update display
+              timeRemaining.display = `${timeRemaining.minutes
+                .toString()
+                .padStart(2, "0")}:${timeRemaining.seconds
+                .toString()
+                .padStart(2, "0")}:${timeRemaining["frame-tenths"]
+                .toString()
+                .padStart(2, "0")}`;
+              break;
+            case "ONAIR_STATUS":
+              updatedPlayers[playerIndex]["is-on-air"] = data.status;
+              break;
+            case "IS_MASTER":
+              updatedPlayers[playerIndex]["is-tempo-master"] = data.status;
+              break;
+            case "STEMS":
+              updatedPlayers[playerIndex].stems = data.stems;
+              break;
+            default:
+              break;
+          }
+        }
+
+        console.log(updatedPlayers);
+        return updatedPlayers;
+      });
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error", error);
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket connection closed");
+    };
+
+    return () => {
+      ws.close();
+    };
   }, []);
 
   return { tempo, players };
