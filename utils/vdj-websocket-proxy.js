@@ -1,5 +1,6 @@
 const WebSocket = require("ws");
 const JZZ = require("jzz");
+const axios = require("axios");
 
 // WebSocket server
 const wss = new WebSocket.Server({ port: 8081 });
@@ -12,9 +13,8 @@ const stemState = {
   4: { vocal: false, melody: false, bass: false, drums: false },
 };
 
-wss.on("connection", (ws) => {
-  console.log("New client connected");
-});
+// Pending requests counter
+let pendingRequestCount = 0;
 
 function parseMidiMessage(message) {
   const [status, data1, data2] = message;
@@ -62,12 +62,80 @@ function broadcastData(data) {
   });
 }
 
+async function fetchTrackInfo(deck) {
+  try {
+    pendingRequestCount++;
+    logStatus();
+
+    const title = await axios.get(
+      `http://127.0.0.1:8010/query?script=deck ${deck} get_title`
+    );
+    const artist = await axios.get(
+      `http://127.0.0.1:8010/query?script=deck ${deck} get_artist`
+    );
+    const cover = await axios.get(
+      `http://127.0.0.1:8010/query?script=deck ${deck} get_controller_image`,
+      { responseType: "arraybuffer" }
+    );
+
+    const coverBase64 = Buffer.from(cover.data, "binary").toString("base64");
+    const coverUrl = `data:image/jpeg;base64,${coverBase64}`;
+
+    const data = {
+      type: "TRACK_INFO",
+      deck,
+      track: {
+        title: title.data,
+        artist: artist.data,
+      },
+      cover: coverUrl,
+    };
+
+    broadcastData(data);
+  } catch (error) {
+    console.error(`Error fetching track info for deck ${deck}`, error);
+  } finally {
+    pendingRequestCount--;
+    logStatus();
+  }
+}
+
+function startTrackInfoFetching() {
+  const decks = [1, 2, 3, 4];
+  decks.forEach((deck, index) => {
+    setTimeout(() => {
+      fetchTrackInfo(deck);
+    }, index * 1000);
+  });
+  setInterval(() => {
+    axios
+      .get(`http://127.0.0.1:8010/query?script=deck master get_bpm`)
+      .then((res) => {
+        broadcastData({ type: "MASTER_TEMPO", bpm: res.data });
+      });
+    decks.forEach((deck, index) => {
+      setTimeout(() => {
+        fetchTrackInfo(deck);
+      }, index * 1000);
+    });
+  }, 5000);
+}
+
+function logStatus() {
+  console.log("MIDI-In:  IAC Driver Bus 1");
+  console.log(
+    "MIDI parser and WebSocket server running on ws://localhost:8081"
+  );
+  console.log(`Pending requests: ${pendingRequestCount}`);
+}
+
 JZZ()
   .or("Cannot start MIDI engine!")
   .openMidiIn()
   .or("Cannot open MIDI In port!")
   .and(function () {
     console.log("MIDI-In: ", this.name());
+    logStatus();
   })
   .connect(function (msg) {
     const midiData = parseMidiMessage(msg);
@@ -203,5 +271,7 @@ JZZ()
       broadcastData(data);
     }
   });
+
+startTrackInfoFetching();
 
 console.log("MIDI parser and WebSocket server running on ws://localhost:8081");

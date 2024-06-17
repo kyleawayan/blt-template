@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { staticPlayersArray } from "./playerData";
 
 export function useVDJData() {
-  const [tempo, setTempo] = useState("0");
+  const [tempo, setTempo] = useState("idk");
   const [players, setPlayers] = useState(staticPlayersArray);
 
   useEffect(() => {
@@ -23,7 +23,12 @@ export function useVDJData() {
         // Get the player index based on the deck number
         const playerIndex = data.deck - 1;
 
-        if (updatedPlayers[playerIndex]) {
+        if (updatedPlayers[playerIndex] || data.type === "MASTER_TEMPO") {
+          if (updatedPlayers[playerIndex]) {
+            updatedPlayers[playerIndex].number = ["A", "B", "C", "D"][
+              playerIndex
+            ];
+          }
           switch (data.type) {
             case "VU_METER_L":
               updatedPlayers[playerIndex].vu_meter_l = data.level;
@@ -59,12 +64,19 @@ export function useVDJData() {
             case "STEMS":
               updatedPlayers[playerIndex].stems = data.stems;
               break;
+            case "TRACK_INFO":
+              console.log(data);
+              updatedPlayers[playerIndex].track = data.track;
+              updatedPlayers[playerIndex].cover = data.cover;
+              break;
+            case "MASTER_TEMPO":
+              setTempo(Math.round(data.bpm).toString());
+              break;
             default:
               break;
           }
         }
 
-        console.log(updatedPlayers);
         return updatedPlayers;
       });
     };
