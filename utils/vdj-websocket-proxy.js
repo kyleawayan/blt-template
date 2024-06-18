@@ -68,18 +68,28 @@ async function fetchTrackInfo(deck) {
     logStatus();
 
     const title = await axios.get(
-      `http://127.0.0.1:8010/query?script=deck ${deck} get_title`
+      `http://127.0.0.1:8010/query?script=deck ${deck} get_title_remix`
     );
     const artist = await axios.get(
       `http://127.0.0.1:8010/query?script=deck ${deck} get_artist`
     );
-    const cover = await axios.get(
-      `http://127.0.0.1:8010/query?script=deck ${deck} get_controller_image`,
-      { responseType: "arraybuffer" }
-    );
 
-    const coverBase64 = Buffer.from(cover.data, "binary").toString("base64");
-    const coverUrl = `data:image/jpeg;base64,${coverBase64}`;
+    let coverUrl = "data:image/jpeg;base64,ZXJyb3I6LTIxNDc0NjcyNTk=";
+
+    while (coverUrl === "data:image/jpeg;base64,ZXJyb3I6LTIxNDc0NjcyNTk=") {
+      const cover = await axios.get(
+        `http://127.0.0.1:8010/query?script=deck ${deck} get_controller_image`,
+        { responseType: "arraybuffer" }
+      );
+
+      const coverBase64 = Buffer.from(cover.data, "binary").toString("base64");
+      coverUrl = `data:image/jpeg;base64,${coverBase64}`;
+
+      // Wait for 1 second before retrying
+      if (coverUrl === "data:image/jpeg;base64,ZXJyb3I6LTIxNDc0NjcyNTk=") {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
 
     const data = {
       type: "TRACK_INFO",
@@ -122,6 +132,7 @@ function startTrackInfoFetching() {
 }
 
 function logStatus() {
+  console.log("------------------------------------------");
   console.log("MIDI-In:  IAC Driver Bus 1");
   console.log(
     "MIDI parser and WebSocket server running on ws://localhost:8081"

@@ -65,7 +65,6 @@ export function useVDJData() {
               updatedPlayers[playerIndex].stems = data.stems;
               break;
             case "TRACK_INFO":
-              console.log(data);
               updatedPlayers[playerIndex].track = data.track;
               updatedPlayers[playerIndex].cover = data.cover;
               break;

@@ -1,6 +1,6 @@
 .containerSafe {
-  width: 90%; /* 100% of the parent element's width */
-  height: calc(100vh * 0.9); /* 90% of the viewport height */
+  width: 85%; /* 100% of the parent element's width */
+  height: calc(100vh * 0.85); /* 90% of the viewport height */
   margin: auto; /* center the container */
   position: absolute;
   top: 50%;
